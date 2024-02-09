@@ -115,7 +115,9 @@
                         // lesson.end = "0" + text[0].split("-")[1]
                         lesson.time = text[0]
                         lesson.type = text[1]
-                        lesson.group = text[3]+"-"+text[2]
+
+                        //prevents unchecking wrong classes
+                        lesson.group = text[3]+"-"+lesson.type+"-"+text[2]
                         lesson.code = text[3]
 
                         let i = 4
