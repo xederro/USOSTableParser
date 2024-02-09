@@ -28,12 +28,11 @@
         function checkURL(urlToParse) {
             try {
                 let url = new URL(urlToParse)
-                if (url.searchParams.has("plan_id") && url.searchParams.has("token") && url.searchParams.has("_action")) {
+                if (url.searchParams.has("_action")) {
                     urlInput.classList.remove('is-invalid')
                     urlInput.classList.add('is-valid')
 
                     //set correct params
-
                     url.searchParams.set("plan_showSettings","1");
                     url.searchParams.set("plan_showStartTime","1");
                     url.searchParams.set("plan_showEndTime","1");
@@ -116,7 +115,7 @@
                         // lesson.end = "0" + text[0].split("-")[1]
                         lesson.time = text[0]
                         lesson.type = text[1]
-                        lesson.group = text[2]
+                        lesson.group = text[3]+"-"+text[2]
                         lesson.code = text[3]
 
                         let i = 4
