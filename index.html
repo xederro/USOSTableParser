@@ -11,165 +11,56 @@
             flex-direction: column;
             justify-content: space-evenly;
         }
-
-        .hidden {
-            display: none;
-        }
-        .is-invalid {
-            background-color: red;
-        }
-        .is-valid {
-            background-color: green;
-        }
     </style>
 
     <script>
-        //check if url is valid and proper acknowledgement
-        function checkURL(urlToParse) {
-            try {
-                let url = new URL(urlToParse)
-                if (url.searchParams.has("_action")) {
-                    urlInput.classList.remove('is-invalid')
-                    urlInput.classList.add('is-valid')
-
-                    //set correct params
-                    url.searchParams.set("plan_showSettings","1");
-                    url.searchParams.set("plan_showStartTime","1");
-                    url.searchParams.set("plan_showEndTime","1");
-                    url.searchParams.set("plan_showTypeShort","1");
-                    url.searchParams.set("plan_showTypeFull","0");
-                    url.searchParams.set("plan_showGroupNumber","1");
-                    url.searchParams.set("plan_showCourseName","1");
-                    url.searchParams.set("plan_showCourseCode","1");
-                    url.searchParams.set("plan_showRoom","1");
-                    url.searchParams.set("plan_showBuildingCode","1");
-                    url.searchParams.set("plan_showLecturers","1");
-                    url.searchParams.set("plan_overridePrintWidth","1");
-                    url.searchParams.set("plan_format","html");
-                    url.searchParams.set("plan_colorScheme","default");
-                    url.searchParams.set("division","semester");
-
-                    //set link and change page
-                    link.href = url
-                    changePage()
-                } else {
-                    urlInput.classList.add('is-invalid')
-                    urlInput.classList.remove('is-valid')
-                }
-            } catch (err) {
-                urlInput.classList.add('is-invalid')
-                urlInput.classList.remove('is-valid')
-            }
-        }
-
         const parseTable = (table)=>{
             const element = document.createElement("div")
             element.innerHTML = table
 
-            let currentSpan = 0
-            let dayColspan = {
-                "": 0,
-                "Poniedziałek": 0,
-                "Wtorek": 0,
-                "Środa": 0,
-                "Czwartek": 0,
-                "Piątek": 0,
-            }
+            const np = new RegExp("nieparzyste");
+            const p = new RegExp("parzyste");
 
             let lessons = []
 
-            //calculate width (colspan) of every day
-            element.querySelectorAll("th").forEach((e)=>{
-                currentSpan += e.colSpan
-                dayColspan[e.innerText] = currentSpan
-            })
+            for (let i = element.getElementsByTagName("usos-timetable")[0].children.length - 1; i >= 0; i--) {
+                let timetableDay = element.getElementsByTagName("usos-timetable")[0].children.item(i).children.item(1)
+                for (let j = timetableDay.children.length - 1; j >= 0; j--) {
+                    let timetableEntry = timetableDay.children[j]
 
-            //parsing every row
-            element.querySelectorAll("tr").forEach((tr)=>{
-                let rowWidth = 0;
-                tr.querySelectorAll("td").forEach((td)=>{
-                    rowWidth += td.colSpan
-
-                    let text = td.querySelector("div")?.parentElement
-
-                    if (!!text) {
-                        text = (text.children[0].innerText + " " + text.children[1].innerText).split(" ")
-
-                        let lesson = {
-                            day: 0,
-                            // start: "",
-                            // end: "",
-                            time: "",
-                            type: "",
-                            group: "",
-                            code: "",
-                            onceAWeek: 2,
-                            name: "",
-                            building: "",
-                            tutor: "",
-                            available: true
-                        }
-
-                        //seperate start and finish
-                        // lesson.start = "0" + text[0].split("-")[0]
-                        // lesson.end = "0" + text[0].split("-")[1]
-                        lesson.time = text[0]
-                        lesson.type = text[1]
-
-                        //prevents unchecking wrong classes
-                        lesson.group = text[3]+"-"+lesson.type+"-"+text[2]
-                        lesson.code = text[3]
-
-                        let i = 4
-                        let j = text.length-1
-
-                        if (text[9] == "parzyste/"){
-                            lesson.onceAWeek = 1
-                            i = 10
-                        } else if (text[9] == "nieparzyste/"){
-                            lesson.onceAWeek = 0
-                            i = 10
-                        }
-
-                        for (j; j > i; j--){
-                            if (text[j] == "-") break
-                            lesson.tutor += text[j] + " "
-                        }
-
-                        for (i; i < j; i++){
-                            if (text[i][0] == "(") break
-                            lesson.name += text[i] + " "
-                        }
-
-                        for (i; i < j; i++){
-                            if (text[i] == "-") break
-                            lesson.building += text[i] + " "
-                        }
-
-                        if (rowWidth <= dayColspan["Poniedziałek"]){
-                            lesson.day = 0
-                        } else if (rowWidth <= dayColspan["Wtorek"]){
-                            lesson.day = 1
-                        } else if (rowWidth <= dayColspan["Środa"]){
-                            lesson.day = 2
-                        } else if (rowWidth <= dayColspan["Czwartek"]){
-                            lesson.day = 3
-                        } else if (rowWidth <= dayColspan["Piątek"]){
-                            lesson.day = 4
-                        }
-
-                        lessons.push(lesson)
+                    let lesson = {
+                        day: i,
+                        time: "",
+                        type: "",
+                        group: "",
+                        code: timetableEntry.getAttribute("name-id"),
+                        onceAWeek: 2,
+                        name: timetableEntry.getAttribute("name"),
+                        building: "",
+                        tutor: "",
+                        available: true
                     }
-                })
-            })
 
-            // data grouped by codes
+                    lesson.time = timetableEntry.style.gridRowStart.substring(1)+timetableEntry.style.gridRowEnd.substring(1)
 
-            // lessons.reduce(function(result, value) {
-            //     result[value.code] = result[value.code] || [];
-            //     result[value.code].push(value);
-            //     return result;
-            // }, {});
+                    let info = timetableEntry.querySelectorAll('[slot="info"]')[0].innerText.split(/(\ \()|(\))/)
+                    let split = info[0].split(/(, )/)
+
+                    lesson.type = split[0]
+                    lesson.group = lesson.code + lesson.type + "-" + split[2]
+                    lesson.building = info[3]
+
+                    lesson.tutor = timetableEntry.querySelectorAll('[slot="dialog-person"]')[0].innerText.trim()
+                    lesson.tutor = lesson.tutor.substring(0, lesson.tutor.length-1)
+
+                    let dialogEvent = timetableEntry.querySelectorAll('[slot="dialog-event"]')[0].innerText
+
+                    if (np.test(dialogEvent)) lesson.onceAWeek = 0
+                    else if (p.test(dialogEvent)) lesson.onceAWeek = 1
+
+                    lessons.push(lesson)
+                }
+            }
 
             return lessons
         }
@@ -179,7 +70,7 @@
 
             // add data the way .krs file is written by zapisownik
             parsed += data[0].code.toUpperCase() + data[0].type + "\n";
-            parsed += data[0].group.substring(0,data[0].group.length-1) + "\n";
+            parsed += data[0].group + "\n";
             parsed += data[0].name + "\n";
             parsed += data[0].type + "\n";
             parsed += data[0].tutor + "\n";
@@ -199,7 +90,7 @@
             for (let i = 1; i < data.length; i++){
                 parsed += data[i].building.substring(1,data[i].building.length-2) + "\n";
                 parsed += data[i].code.toUpperCase() + data[i].type + "\n";
-                parsed += data[i].group.substring(0,data[i].group.length-1) + "\n";
+                parsed += data[i].group + "\n";
                 parsed += data[i].name + "\n";
                 parsed += data[i].type + "\n";
                 parsed += data[i].tutor + "\n";
@@ -225,34 +116,18 @@
                 type: "text/plain;charset=utf-8",
             });
 
-            saveAs(blob, "download.krs");
-        }
-
-        const changePage = ()=>{
-            //change page
-            first.classList.toggle("hidden")
-            second.classList.toggle("hidden")
+            saveAs(blob, "plan.krs");
         }
     </script>
 </head>
 <body>
-    <div class="" id="first">
+    <div>
         <p>
-            Wklej poniżej link do planu ktorego chcesz użyć
-        </p>
-        <label for="urlInput">URL:</label>
-        <input type="text" id="urlInput">
-        <button onclick="checkURL(document.getElementById('urlInput').value)">Create URL</button>
-    </div>
-
-    <div class="hidden" id="second">
-        <p>
-            Wejdź <a href="#" target="_blank" id="link">na tą stronę</a>, i skopiuj cały elemnt tabeli ( f12, znajdź tag: table, zaznacz, ctrl+c ) a następnie wklej poniżej.
+            Wejdź na swój plan i skopiuj cały element usos-timetable (f12, znajdź tag: usos-timetable, zaznacz, ctrl+c) a następnie wklej poniżej.
         </p>
         <label for="in">Tabela:</label>
         <textarea id="in" rows="15"></textarea>
         <button onclick="parseDataToKRS(parseTable(document.getElementById('in').value))">Parse</button>
-        <button onclick="changePage()">Cofnij</button>
     </div>
 </body>
 </html>
