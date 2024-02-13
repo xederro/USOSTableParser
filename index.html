@@ -29,41 +29,58 @@
                     let timetableEntry = timetableDay.children[j]
 
                     let lesson = {
-                        day: i,
                         time: "",
                         type: "",
                         group: "",
                         code: timetableEntry.getAttribute("name-id"),
-                        onceAWeek: 2,
-                        name: timetableEntry.getAttribute("name"),
+                        name: defaultName.value,
                         building: "",
                         tutor: "",
                         available: true
                     }
 
-                    lesson.time = timetableEntry.style.gridRowStart.substring(1)+timetableEntry.style.gridRowEnd.substring(1)
+                    if (timetableEntry.getAttribute("name").match(/^([CLWPS], )/)){
+                        let info = timetableEntry.getAttribute("name").split(/(\ \()|(\))/)
+                        let split = info[0].split(/(, )/)
 
-                    let info = timetableEntry.querySelectorAll('[slot="info"]')[0].innerText.split(/(\ \()|(\))/)
-                    let split = info[0].split(/(, )/)
+                        lesson.type = split[0]
+                        lesson.group = lesson.code + lesson.type + "-" + split[2]
+                        lesson.building = info[3]
+                    } else {
+                        lesson.name = timetableEntry.getAttribute("name")
+                        let info = timetableEntry.querySelectorAll('[slot="info"]')[0].innerText.split(/(\ \()|(\))/)
+                        let split = info[0].split(/(, )/)
 
-                    lesson.type = split[0]
-                    lesson.group = lesson.code + lesson.type + "-" + split[2]
-                    lesson.building = info[3]
+                        lesson.type = split[0]
+                        lesson.group = lesson.code + lesson.type + "-" + split[2]
+                        lesson.building = info[3]
+                    }
 
                     lesson.tutor = timetableEntry.querySelectorAll('[slot="dialog-person"]')[0].innerText.trim()
                     lesson.tutor = lesson.tutor.substring(0, lesson.tutor.length-1)
+                    lesson.tutor = lesson.tutor.replaceAll(/[\ ]{2,}/g, " ")
 
                     let dialogEvent = timetableEntry.querySelectorAll('[slot="dialog-event"]')[0].innerText
 
-                    if (np.test(dialogEvent)) lesson.onceAWeek = 0
-                    else if (p.test(dialogEvent)) lesson.onceAWeek = 1
+                    if (np.test(dialogEvent)) lesson.time = "0"+i+"0"+timetableEntry.style.gridRowStart.substring(1)+timetableEntry.style.gridRowEnd.substring(1)
+                    else if (p.test(dialogEvent)) lesson.time = "1"+i+"0"+timetableEntry.style.gridRowStart.substring(1)+timetableEntry.style.gridRowEnd.substring(1)
+                    else lesson.time = "2"+i+"0"+timetableEntry.style.gridRowStart.substring(1)+timetableEntry.style.gridRowEnd.substring(1)
 
-                    lessons.push(lesson)
+                    let isNewLesson = true
+                    for (let k = lessons.length - 1; k >= 0; k--) {
+                        if(lessons[k].group == lesson.group){
+                            lessons[k].time += ";" + lesson.time
+                            isNewLesson = false
+                            break
+                        }
+                    }
+
+                    if(isNewLesson) lessons.push(lesson)
                 }
             }
-
             return lessons
         }
+
 
         const parseDataToKRS = (data)=>{
             let parsed = ""
@@ -74,42 +91,24 @@
             parsed += data[0].name + "\n";
             parsed += data[0].type + "\n";
             parsed += data[0].tutor + "\n";
-            parsed += data[0].onceAWeek.toString() + data[0].day + "0";
-
-            let x = data[0].time.matchAll("\\d{1,2}")
-            for (let j = 0; j < 4; j++){
-                let z = x.next().value[0]
-                if (z.length == 1) parsed += "0" + z
-                else parsed += z
-            }
-
-            parsed += "\n";
+            parsed += data[0].time + "\n";
 
             parsed += "1\n";
             parsed += "\n";
             for (let i = 1; i < data.length; i++){
-                parsed += data[i].building.substring(1,data[i].building.length-2) + "\n";
+                parsed += data[i].building + "\n";
                 parsed += data[i].code.toUpperCase() + data[i].type + "\n";
                 parsed += data[i].group + "\n";
                 parsed += data[i].name + "\n";
                 parsed += data[i].type + "\n";
                 parsed += data[i].tutor + "\n";
-                parsed += data[i].onceAWeek.toString() + data[i].day + "0";
-
-                let x = data[i].time.matchAll("\\d{1,2}")
-                for (let j = 0; j < 4; j++){
-                    let z = x.next().value[0]
-                    if (z.length == 1) parsed += "0" + z
-                    else parsed += z
-                }
-
-                parsed += "\n";
+                parsed += data[i].time + "\n";
 
                 parsed += "1\n";
                 parsed += "\n";
             }
 
-            parsed += data[0].building.substring(1,data[0].building.length-2) + "\n";
+            parsed += data[0].building + "\n";
 
             //save data
             let blob = new Blob([parsed], {
@@ -121,13 +120,15 @@
     </script>
 </head>
 <body>
-    <div>
-        <p>
-            Wejdź na swój plan i skopiuj cały element usos-timetable (f12, znajdź tag: usos-timetable, zaznacz, ctrl+c) a następnie wklej poniżej.
-        </p>
-        <label for="in">Tabela:</label>
-        <textarea id="in" rows="15"></textarea>
-        <button onclick="parseDataToKRS(parseTable(document.getElementById('in').value))">Parse</button>
-    </div>
+<div>
+    <p>
+        Wejdź na swój plan i skopiuj cały element usos-timetable (f12, znajdź tag: usos-timetable, zaznacz, ctrl+c) a następnie wklej poniżej.
+    </p>
+    <label for="defaultName">Nazwa gdy nie znajdziemy nazwy, przydatna np. przy językach:</label>
+    <input id="defaultName" type="text" value=""/>
+    <label for="in">Tabela:</label>
+    <textarea id="in" rows="15"></textarea>
+    <button onclick="parseDataToKRS(parseTable(document.getElementById('in').value))">Parse</button>
+</div>
 </body>
 </html>
