@@ -56,9 +56,13 @@
                         lesson.building = info[3]
                     }
 
-                    lesson.tutor = timetableEntry.querySelectorAll('[slot="dialog-person"]')[0].innerText.trim()
-                    lesson.tutor = lesson.tutor.substring(0, lesson.tutor.length-1)
-                    lesson.tutor = lesson.tutor.replaceAll(/[\ ]{2,}/g, " ")
+
+                    if (timetableEntry.querySelectorAll('[slot="dialog-person"]').length!=0){
+                        lesson.tutor = timetableEntry.querySelectorAll('[slot="dialog-person"]')[0].innerText.trim()
+                        lesson.tutor = lesson.tutor.substring(0, lesson.tutor.length-1)
+                        lesson.tutor = lesson.tutor.replaceAll(/[\ ]{2,}/g, " ")
+                    }
+
 
                     let dialogEvent = timetableEntry.querySelectorAll('[slot="dialog-event"]')[0].innerText
 
